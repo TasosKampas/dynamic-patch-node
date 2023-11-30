@@ -5,7 +5,7 @@ var nodeConfig = {
     nodeName: "***dynamic-patch-next-gen",
     objectId: "alpha_user",
     userId: "_id",
-    errorMessage: "Internal Server error"
+    errorMessage: "Something went wrong!"
 };
 
 /**
@@ -61,8 +61,9 @@ function patchUser(objectAttributes, userId) {
         idmPatch = openidm.patch("managed/" + nodeConfig.objectId + "/" + userId, null, requestBody);
       	return true;
     } catch (e) {
-        logger.error(" Unable to call IDM endpoint. Exception: " + e);
-        return null;
+        logger.error("Unable to call IDM endpoint. Exception: " + e);
+      	nodeState.putShared("errorMessage", nodeConfig.errorMessage);
+        return false;
     }
 }
 
@@ -74,7 +75,7 @@ function patchUser(objectAttributes, userId) {
     logger.debug("node executing");
 
     var userId;
-    var objectAttributes = nodeState.get("objectAttributes");
+    var objectAttributes = nodeState.getObject("objectAttributes");
 
     if (!objectAttributes) {
         logger.error("objectAttributes not found in node state.");
@@ -87,12 +88,5 @@ function patchUser(objectAttributes, userId) {
         action.goTo(nodeOutcomes.ERROR).withErrorMessage(nodeConfig.errorMessage);
         return;
     }
-
-    if (!(patchUser(objectAttributes, userId))) {
-        logger.error("Error patching user");
-        action.goTo(nodeOutcomes.ERROR).withErrorMessage(nodeConfig.errorMessage);
-    } else {
-      	logger.debug("IDM user patched.");
-        action.goTo(nodeOutcomes.TRUE)
-    }
+    action.goTo(patchUser(objectAttributes, userId) ? nodeOutcomes.TRUE : nodeOutcomes.ERROR)
 })();
